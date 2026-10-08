@@ -1,19 +1,23 @@
-function onScanSuccess(decodedText, decodedResult) {
-  // Check if the scanned text is a valid URL
+const html5QrCode = new Html5Qrcode("reader");
+
+const qrCodeSuccessCallback = (decodedText, decodedResult) => {
   if (decodedText.startsWith('http://') || decodedText.startsWith('https://')) {
-    // Stop scanning before redirecting
-    html5QrcodeScanner.clear().then(() => {
+    // Stop camera feed prior to navigation
+    html5QrCode.stop().then(() => {
+      window.location.href = decodedText;
+    }).catch(() => {
+      // Direct navigation if stopping camera encounters an issue
       window.location.href = decodedText;
     });
   } else {
-    alert("Scanned code is not a valid URL: " + decodedText);
+    alert("Scanned text is not a URL: " + decodedText);
   }
-}
+};
 
-let html5QrcodeScanner = new Html5QrcodeScanner(
-  "reader",
-  { fps: 10, qrbox: { width: 250, height: 250 } },
-  false
+const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+html5QrCode.start(
+  { facingMode: "environment" }, 
+  config, 
+  qrCodeSuccessCallback
 );
-
-html5QrcodeScanner.render(onScanSuccess);
