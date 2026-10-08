@@ -1,23 +1,46 @@
-const html5QrCode = new Html5Qrcode("reader");
+const statusEl = document.getElementById('status');
 
-const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-  if (decodedText.startsWith('http://') || decodedText.startsWith('https://')) {
-    // Stop camera feed prior to navigation
-    html5QrCode.stop().then(() => {
-      window.location.href = decodedText;
-    }).catch(() => {
-      // Direct navigation if stopping camera encounters an issue
-      window.location.href = decodedText;
-    });
-  } else {
-    alert("Scanned text is not a URL: " + decodedText);
-  }
-};
+    function onScanSuccess(decodedText, decodedResult) {
+      statusEl.innerText = `Found QR Code: ${decodedText}`;
+      console.log("Scanned:", decodedText);
 
-const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+      // Clean up whitespace
+      const scannedUrl = decodedText.trim();
 
-html5QrCode.start(
-  { facingMode: "environment" }, 
-  config, 
-  qrCodeSuccessCallback
-);
+      // Check if it's a valid http or https URL
+      if (scannedUrl.startsWith('http://') || scannedUrl.startsWith('https://')) {
+        statusEl.innerText = `Redirecting to: ${scannedUrl}...`;
+        
+        // Clear scanner before navigating away
+        html5QrcodeScanner.clear().then(() => {
+          window.location.href = scannedUrl;
+        }).catch(() => {
+          // Fallback if clear fails
+          window.location.href = scannedUrl;
+        });
+      } else {
+        statusEl.innerText = `Scanned text is not a link: "${scannedUrl}"`;
+      }
+    }
+
+    function onScanFailure(error) {
+      // Normal continuous searching state — no action needed
+    }
+
+    // Initialize scanner with responsive box dimensions
+    let html5QrcodeScanner = new Html5QrcodeScanner(
+      "reader",
+      { 
+        fps: 15, // Increase frames per second for faster detection
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+          // Dynamic sizing so small mobile screens don't cut off detection
+          let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+          let qrboxSize = Math.floor(minEdgeSize * 0.7);
+          return {
+            width: qrboxSize,
+            height: qrboxSize
+          };
+        }
+      },
+      /* verbose= */ false
+    );
